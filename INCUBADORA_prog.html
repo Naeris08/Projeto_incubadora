@@ -82,6 +82,19 @@
     font-size: 11px; font-weight: 500; letter-spacing: 0.06em;
     color: var(--text3); text-transform: uppercase; margin-bottom: 14px;
   }
+
+  /* --- Novos estilos para os botões de Perfil --- */
+  .profile-grid { display: flex; gap: 10px; margin-bottom: 12px; flex-wrap: wrap; }
+  .profile-btn {
+    flex: 1; padding: 12px; border-radius: var(--radius-sm);
+    border: 0.5px solid var(--border); background: var(--surface2);
+    color: var(--text2); font-size: 13px; font-weight: 600; cursor: pointer;
+    transition: all 0.2s; text-align: center; min-width: 120px;
+  }
+  .profile-btn:hover { background: var(--border); color: var(--text); }
+  .profile-btn.active { background: var(--blue-bg); border-color: var(--blue); color: var(--blue-txt); }
+  .profile-desc { font-size: 12px; color: var(--text3); line-height: 1.4; }
+  /* ---------------------------------------------- */
  
   .metrics-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
  
@@ -189,7 +202,7 @@
   .no-serial-banner.show { display: block; }
  
   @media (max-width: 500px) {
-    .metrics-grid, .actuators-grid, .settings-grid { grid-template-columns: 1fr; }
+    .metrics-grid, .actuators-grid, .settings-grid, .profile-grid { grid-template-columns: 1fr; flex-direction: column; }
   }
 </style>
 </head>
@@ -197,7 +210,7 @@
  
 <header>
   <div class="logo">
-    <div class="logo-icon">👶</div>
+    <div class="logo-icon">🥚</div>
     <div>
       <h1>Incubadora</h1>
       <p>Painel de controle via Serial USB</p>
@@ -213,6 +226,18 @@
  
   <div class="no-serial-banner" id="noBanner">
     ⚠️ Web Serial API não suportada neste navegador. Use o Google Chrome 89+ ou Microsoft Edge.
+  </div>
+
+  <div class="card">
+    <div class="section-label">Casos Clínicos / Perfis de Bebês</div>
+    <div class="profile-grid">
+      <button class="profile-btn active" onclick="loadProfile(0)" id="btnProf0">👶 Bebê 1 (Padrão)</button>
+      <button class="profile-btn" onclick="loadProfile(1)" id="btnProf1">👶 Bebê 2 (Prematuro)</button>
+      <button class="profile-btn" onclick="loadProfile(2)" id="btnProf2">👶 Bebê 3 (Crítico)</button>
+    </div>
+    <div class="profile-desc" id="profileDesc">
+      <strong>Caso Padrão:</strong> Bebê estável. Requer parâmetros normais de temperatura (36 a 39°C) e umidade moderada (50 a 75%).
+    </div>
   </div>
  
   <div class="card">
@@ -291,14 +316,14 @@
  
   <div class="card log-card">
     <div class="log-header">
-      <div class="section-label" style="margin:0">Log serial</div>
+      <div class="section-label" style="margin:0">Log serial (Console)</div>
       <button class="log-clear" onclick="clearLog()">Limpar</button>
     </div>
     <div class="log-box" id="logBox"></div>
   </div>
  
   <div class="card">
-    <div class="section-label">Faixas normais de operação</div>
+    <div class="section-label">Faixas normais de operação (Ajustável)</div>
     <div class="settings-grid">
       <div class="setting-group">
         <label>Temperatura normal (°C)</label>
@@ -322,8 +347,7 @@
 </main>
  
 <footer>
-  <p>Requer <strong>Google Chrome 89+</strong> ou Edge — Web Serial API &nbsp;|&nbsp;
-  <a href="#" onclick="sendPromptInfo()">Ver código Arduino de exemplo</a></p>
+  <p>Requer <strong>Google Chrome 89+</strong> ou Edge — Web Serial API</p>
 </footer>
  
 <script>
@@ -332,6 +356,36 @@ let buffer = '';
 let tempHistory = [], umidHistory = [], timeHistory = [];
 const MAX_HIST = 60;
 let fanSpinning = false, spinInterval = null;
+
+// --- Configuração dos Perfis ---
+const profiles = [
+  { name: "Bebê 1 (Padrão)", tMin: 36.0, tMax: 39.0, uMin: 50, uMax: 75, desc: "<strong>Caso Padrão:</strong> Bebê estável. Requer parâmetros normais de temperatura (36 a 39°C) e umidade moderada (50 a 75%)." },
+  { name: "Bebê 2 (Prematuro)", tMin: 36.5, tMax: 37.5, uMin: 65, uMax: 85, desc: "<strong>Caso Prematuro:</strong> Controle rigoroso e janela estreita de temperatura (36.5 a 37.5°C). Alta exigência de umidade (65 a 85%) para evitar perda de líquidos pela pele fina." },
+  { name: "Bebê 3 (Crítico)", tMin: 37.0, tMax: 38.0, uMin: 40, uMax: 60, desc: "<strong>Caso Crítico (Fictício):</strong> Temperatura ligeiramente mais alta (37 a 38°C) e ambiente mais seco (40 a 60%) conforme prescrição médica." }
+];
+
+function loadProfile(idx) {
+  // Atualiza botões
+  for(let i = 0; i < 3; i++) {
+    document.getElementById('btnProf'+i).classList.remove('active');
+  }
+  document.getElementById('btnProf'+idx).classList.add('active');
+
+  // Atualiza inputs de configuração com os dados do perfil
+  const p = profiles[idx];
+  document.getElementById('cfgTMin').value = p.tMin;
+  document.getElementById('cfgTMax').value = p.tMax;
+  document.getElementById('cfgUMin').value = p.uMin;
+  document.getElementById('cfgUMax').value = p.uMax;
+  
+  // Atualiza descrição do caso
+  document.getElementById('profileDesc').innerHTML = p.desc;
+
+  // Aplica as mudanças
+  updateCfg();
+  log(`Perfil alterado: ${p.name}`, 'info');
+}
+// -------------------------------
  
 let cfg = { tMin:36, tMax:39, uMin:50, uMax:75 };
  
