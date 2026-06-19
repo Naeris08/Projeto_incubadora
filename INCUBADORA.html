@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Incubadora — Painel de Controle</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+ 
+  :root {
+    --bg: #f5f5f3;
+    --surface: #ffffff;
+    --surface2: #f0efeb;
+    --border: rgba(0,0,0,0.10);
+    --border2: rgba(0,0,0,0.18);
+    --text: #1a1a19;
+    --text2: #5f5e5a;
+    --text3: #888780;
+    --radius: 12px;
+    --radius-sm: 8px;
+    --blue: #185FA5; --blue-bg: #E6F1FB; --blue-txt: #0C447C;
+    --red: #A32D2D;  --red-bg: #FCEBEB;  --red-txt: #791F1F;
+    --green: #3B6D11; --green-bg: #EAF3DE; --green-txt: #27500A;
+    --amber: #854F0B; --amber-bg: #FAEEDA; --amber-txt: #633806;
+  }
+ 
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1c1c1a; --surface: #252523; --surface2: #2e2e2b;
+      --border: rgba(255,255,255,0.09); --border2: rgba(255,255,255,0.16);
+      --text: #f0ede8; --text2: #b4b2a9; --text3: #888780;
+      --blue: #85B7EB; --blue-bg: #0C447C; --blue-txt: #B5D4F4;
+      --red: #F09595;  --red-bg: #791F1F;  --red-txt: #F7C1C1;
+      --green: #97C459; --green-bg: #27500A; --green-txt: #C0DD97;
+      --amber: #EF9F27; --amber-bg: #633806; --amber-txt: #FAC775;
+    }
+  }
+ 
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: var(--bg); color: var(--text);
+    min-height: 100vh; padding: 24px 16px;
+  }
+ 
+  header {
+    max-width: 800px; margin: 0 auto 24px;
+    display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;
+  }
+ 
+  .logo { display: flex; align-items: center; gap: 10px; }
+  .logo-icon {
+    width: 38px; height: 38px; border-radius: var(--radius-sm);
+    background: var(--blue-bg); display: flex; align-items: center; justify-content: center;
+    font-size: 20px;
+  }
+  .logo h1 { font-size: 18px; font-weight: 500; }
+  .logo p { font-size: 12px; color: var(--text2); }
+ 
+  .conn-btn {
+    display: flex; align-items: center; gap: 8px;
+    padding: 8px 16px; border-radius: var(--radius-sm);
+    border: 0.5px solid var(--border2); background: var(--surface);
+    color: var(--text); font-size: 14px; font-weight: 500; cursor: pointer;
+    transition: background 0.15s;
+  }
+  .conn-btn:hover { background: var(--surface2); }
+  .conn-btn.connected { background: var(--green-bg); border-color: var(--green); color: var(--green-txt); }
+  .conn-btn.connecting { background: var(--amber-bg); border-color: var(--amber); color: var(--amber-txt); }
+ 
+  .dot-live { width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
+  .dot-live.pulse { animation: pulse 1.2s ease-in-out infinite; }
+  @keyframes pulse { 0%,100%{opacity:0.3} 50%{opacity:1} }
+ 
+  main { max-width: 800px; margin: 0 auto; display: flex; flex-direction: column; gap: 16px; }
+ 
+  .card {
+    background: var(--surface); border: 0.5px solid var(--border);
+    border-radius: var(--radius); padding: 20px;
+  }
+ 
+  .section-label {
+    font-size: 11px; font-weight: 500; letter-spacing: 0.06em;
+    color: var(--text3); text-transform: uppercase; margin-bottom: 14px;
+  }
+ 
+  .metrics-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+ 
+  .metric {
+    background: var(--surface2); border-radius: var(--radius-sm); padding: 16px;
+  }
+  .metric-label { font-size: 12px; color: var(--text2); margin-bottom: 4px; display: flex; align-items: center; gap: 6px; }
+  .metric-val { font-size: 36px; font-weight: 500; line-height: 1; }
+  .metric-unit { font-size: 16px; font-weight: 400; color: var(--text2); }
+  .metric-bar { height: 4px; background: var(--border2); border-radius: 2px; margin-top: 10px; overflow: hidden; }
+  .metric-fill { height: 100%; border-radius: 2px; transition: width 0.6s, background 0.4s; }
+  .metric-status {
+    display: inline-block; margin-top: 8px; font-size: 11px; font-weight: 500;
+    padding: 2px 8px; border-radius: 999px;
+  }
+ 
+  .actuators-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+ 
+  .actuator {
+    border: 0.5px solid var(--border); border-radius: var(--radius-sm);
+    padding: 16px; display: flex; flex-direction: column; gap: 10px;
+    transition: border-color 0.3s, background 0.3s;
+  }
+  .actuator.on-heat { background: var(--red-bg); border-color: var(--red); }
+  .actuator.on-fan  { background: var(--blue-bg); border-color: var(--blue); }
+ 
+  .act-header { display: flex; align-items: center; justify-content: space-between; }
+  .act-name { font-size: 14px; font-weight: 500; }
+  .act-badge {
+    font-size: 11px; padding: 3px 9px; border-radius: 999px;
+    border: 0.5px solid var(--border); background: var(--surface2);
+    color: var(--text2); transition: all 0.3s;
+  }
+  .act-badge.on-heat { background: var(--red-bg); border-color: var(--red); color: var(--red-txt); }
+  .act-badge.on-fan  { background: var(--blue-bg); border-color: var(--blue); color: var(--blue-txt); }
+ 
+  .act-icon { font-size: 28px; }
+  .act-desc { font-size: 12px; color: var(--text2); }
+ 
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .spin { display: inline-block; animation: spin 0.6s linear infinite; }
+ 
+  .coils { display: flex; gap: 4px; }
+  .coil {
+    width: 24px; height: 6px; border-radius: 3px;
+    background: var(--red); opacity: 0.2; transition: opacity 0.4s;
+  }
+  .coil.glow { opacity: 1; }
+ 
+  .chart-section { }
+  .chart-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+  .chart-legend { display: flex; gap: 16px; }
+  .legend-item { display: flex; align-items: center; gap: 5px; font-size: 12px; color: var(--text2); }
+  .legend-dot { width: 8px; height: 8px; border-radius: 50%; }
+ 
+  canvas { width: 100%; height: 180px; display: block; }
+ 
+  .log-card { }
+  .log-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+  .log-clear { font-size: 12px; color: var(--text3); cursor: pointer; border: none; background: none; }
+  .log-clear:hover { color: var(--text); }
+  .log-box {
+    background: var(--surface2); border-radius: var(--radius-sm);
+    padding: 12px; font-family: 'SF Mono', 'Consolas', monospace;
+    font-size: 12px; color: var(--text2); height: 140px;
+    overflow-y: auto; display: flex; flex-direction: column; gap: 3px;
+  }
+  .log-entry { display: flex; gap: 8px; }
+  .log-time { color: var(--text3); flex-shrink: 0; }
+  .log-msg.info  { color: var(--blue); }
+  .log-msg.ok    { color: var(--green); }
+  .log-msg.warn  { color: var(--amber); }
+  .log-msg.error { color: var(--red); }
+  .log-msg.data  { color: var(--text); }
+ 
+  .settings-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .setting-group label { font-size: 12px; color: var(--text2); display: block; margin-bottom: 6px; }
+  .setting-group .row { display: flex; gap: 8px; }
+  .setting-group input[type=number] {
+    width: 72px; padding: 6px 10px; border-radius: var(--radius-sm);
+    border: 0.5px solid var(--border2); background: var(--surface2);
+    color: var(--text); font-size: 14px;
+  }
+  .range-sep { font-size: 14px; color: var(--text3); padding-top: 6px; }
+ 
+  .serial-row { display: flex; gap: 8px; margin-bottom: 12px; }
+  .serial-row select {
+    flex: 1; padding: 8px 12px; border-radius: var(--radius-sm);
+    border: 0.5px solid var(--border2); background: var(--surface2);
+    color: var(--text); font-size: 14px; cursor: pointer;
+  }
+ 
+  footer {
+    max-width: 800px; margin: 24px auto 0;
+    font-size: 12px; color: var(--text3); text-align: center;
+  }
+  footer a { color: inherit; }
+ 
+  .no-serial-banner {
+    background: var(--amber-bg); border: 0.5px solid var(--amber);
+    border-radius: var(--radius-sm); padding: 10px 14px;
+    font-size: 13px; color: var(--amber-txt); margin-bottom: 4px;
+    display: none;
+  }
+  .no-serial-banner.show { display: block; }
+ 
+  @media (max-width: 500px) {
+    .metrics-grid, .actuators-grid, .settings-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+ 
+<header>
+  <div class="logo">
+    <div class="logo-icon">👶</div>
+    <div>
+      <h1>Incubadora</h1>
+      <p>Painel de controle via Serial USB</p>
+    </div>
+  </div>
+  <button class="conn-btn" id="connBtn" onclick="toggleConnection()">
+    <span class="dot-live" id="connDot"></span>
+    <span id="connLabel">Conectar Arduino</span>
+  </button>
+</header>
+ 
+<main>
+ 
+  <div class="no-serial-banner" id="noBanner">
+    ⚠️ Web Serial API não suportada neste navegador. Use o Google Chrome 89+ ou Microsoft Edge.
+  </div>
+ 
+  <div class="card">
+    <div class="section-label">Configuração da porta</div>
+    <div class="serial-row">
+      <select id="baudRate">
+        <option value="9600">9600 baud</option>
+        <option value="115200" selected>115200 baud</option>
+        <option value="57600">57600 baud</option>
+        <option value="38400">38400 baud</option>
+      </select>
+      <button class="conn-btn" onclick="toggleConnection()" id="connBtn2">
+        <span id="connLabel2">Conectar</span>
+      </button>
+    </div>
+    <p style="font-size:12px;color:var(--text3)">
+      Protocolo esperado do Arduino: <code style="background:var(--surface2);padding:1px 5px;border-radius:4px">T:37.5,U:62</code> a cada 1–2 s via <code style="background:var(--surface2);padding:1px 5px;border-radius:4px">Serial.println()</code>
+    </p>
+  </div>
+ 
+  <div class="card">
+    <div class="section-label">Leituras dos sensores</div>
+    <div class="metrics-grid">
+      <div class="metric">
+        <div class="metric-label">🌡 Temperatura</div>
+        <div class="metric-val"><span id="tempVal">--</span><span class="metric-unit"> °C</span></div>
+        <div class="metric-bar"><div class="metric-fill" id="tempBar" style="width:0%"></div></div>
+        <span class="metric-status" id="tempStatus" style="background:var(--surface2);color:var(--text3)">Aguardando...</span>
+      </div>
+      <div class="metric">
+        <div class="metric-label">💧 Umidade</div>
+        <div class="metric-val"><span id="umidVal">--</span><span class="metric-unit"> %</span></div>
+        <div class="metric-bar"><div class="metric-fill" id="umidBar" style="width:0%"></div></div>
+        <span class="metric-status" id="umidStatus" style="background:var(--surface2);color:var(--text3)">Aguardando...</span>
+      </div>
+    </div>
+  </div>
+ 
+  <div class="card">
+    <div class="section-label">Atuadores</div>
+    <div class="actuators-grid">
+      <div class="actuator" id="actHeat">
+        <div class="act-header">
+          <span class="act-name">Resistência</span>
+          <span class="act-badge" id="heatBadge">Desligada</span>
+        </div>
+        <div class="coils">
+          <div class="coil" id="c1"></div>
+          <div class="coil" id="c2"></div>
+          <div class="coil" id="c3"></div>
+          <div class="coil" id="c4"></div>
+        </div>
+        <div class="act-desc">Liga quando T &lt; <span id="tMin">36</span>°C ou UR &lt; <span id="uMin">50</span>%</div>
+      </div>
+      <div class="actuator" id="actFan">
+        <div class="act-header">
+          <span class="act-name">Ventoinha</span>
+          <span class="act-badge" id="fanBadge">Desligada</span>
+        </div>
+        <div id="fanIcon" style="font-size:28px;">🌀</div>
+        <div class="act-desc">Liga quando T &gt; <span id="tMax">39</span>°C ou UR &gt; <span id="uMax">75</span>%</div>
+      </div>
+    </div>
+  </div>
+ 
+  <div class="card chart-section">
+    <div class="chart-header">
+      <div class="section-label" style="margin:0">Histórico (últimos 60 s)</div>
+      <div class="chart-legend">
+        <div class="legend-item"><div class="legend-dot" style="background:#E24B4A"></div>Temp (°C)</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#185FA5"></div>Umidade (%)</div>
+      </div>
+    </div>
+    <canvas id="chartCanvas"></canvas>
+  </div>
+ 
+  <div class="card log-card">
+    <div class="log-header">
+      <div class="section-label" style="margin:0">Log serial</div>
+      <button class="log-clear" onclick="clearLog()">Limpar</button>
+    </div>
+    <div class="log-box" id="logBox"></div>
+  </div>
+ 
+  <div class="card">
+    <div class="section-label">Faixas normais de operação</div>
+    <div class="settings-grid">
+      <div class="setting-group">
+        <label>Temperatura normal (°C)</label>
+        <div class="row">
+          <input type="number" id="cfgTMin" value="36" min="0" max="60" step="0.5" onchange="updateCfg()">
+          <span class="range-sep">—</span>
+          <input type="number" id="cfgTMax" value="39" min="0" max="60" step="0.5" onchange="updateCfg()">
+        </div>
+      </div>
+      <div class="setting-group">
+        <label>Umidade normal (%)</label>
+        <div class="row">
+          <input type="number" id="cfgUMin" value="50" min="0" max="100" step="1" onchange="updateCfg()">
+          <span class="range-sep">—</span>
+          <input type="number" id="cfgUMax" value="75" min="0" max="100" step="1" onchange="updateCfg()">
+        </div>
+      </div>
+    </div>
+  </div>
+ 
+</main>
+ 
+<footer>
+  <p>Requer <strong>Google Chrome 89+</strong> ou Edge — Web Serial API &nbsp;|&nbsp;
+  <a href="#" onclick="sendPromptInfo()">Ver código Arduino de exemplo</a></p>
+</footer>
+ 
+<script>
+let port = null, reader = null, writer = null;
+let buffer = '';
+let tempHistory = [], umidHistory = [], timeHistory = [];
+const MAX_HIST = 60;
+let fanSpinning = false, spinInterval = null;
+ 
+let cfg = { tMin:36, tMax:39, uMin:50, uMax:75 };
+ 
+function updateCfg() {
+  cfg.tMin = parseFloat(document.getElementById('cfgTMin').value);
+  cfg.tMax = parseFloat(document.getElementById('cfgTMax').value);
+  cfg.uMin = parseFloat(document.getElementById('cfgUMin').value);
+  cfg.uMax = parseFloat(document.getElementById('cfgUMax').value);
+  document.getElementById('tMin').textContent = cfg.tMin;
+  document.getElementById('tMax').textContent = cfg.tMax;
+  document.getElementById('uMin').textContent = cfg.uMin;
+  document.getElementById('uMax').textContent = cfg.uMax;
+  applyLogic(lastT, lastU);
+}
+ 
+let lastT = null, lastU = null;
+ 
+if (!('serial' in navigator)) {
+  document.getElementById('noBanner').classList.add('show');
+}
+ 
+function log(msg, type='data') {
+  const box = document.getElementById('logBox');
+  const now = new Date();
+  const t = now.toTimeString().slice(0,8);
+  const el = document.createElement('div');
+  el.className = 'log-entry';
+  el.innerHTML = `<span class="log-time">${t}</span><span class="log-msg ${type}">${msg}</span>`;
+  box.appendChild(el);
+  box.scrollTop = box.scrollHeight;
+  if (box.children.length > 200) box.removeChild(box.firstChild);
+}
+ 
+function clearLog() { document.getElementById('logBox').innerHTML = ''; }
+ 
+function setConnState(state) {
+  const btn = document.getElementById('connBtn');
+  const btn2 = document.getElementById('connBtn2');
+  const dot = document.getElementById('connDot');
+  const lbl = document.getElementById('connLabel');
+  const lbl2 = document.getElementById('connLabel2');
+  btn.className = 'conn-btn ' + (state === 'connected' ? 'connected' : state === 'connecting' ? 'connecting' : '');
+  dot.className = 'dot-live' + (state === 'connected' ? ' pulse' : '');
+  if (state === 'connected') { lbl.textContent = 'Desconectar'; lbl2.textContent = 'Desconectar'; }
+  else if (state === 'connecting') { lbl.textContent = 'Conectando...'; lbl2.textContent = 'Conectando...'; }
+  else { lbl.textContent = 'Conectar Arduino'; lbl2.textContent = 'Conectar'; }
+}
+ 
+async function toggleConnection() {
+  if (port) { await disconnect(); return; }
+  if (!('serial' in navigator)) { alert('Web Serial API não suportada. Use Chrome 89+.'); return; }
+  try {
+    setConnState('connecting');
+    log('Solicitando porta serial...', 'info');
+    port = await navigator.serial.requestPort();
+    const baud = parseInt(document.getElementById('baudRate').value);
+    await port.open({ baudRate: baud });
+    setConnState('connected');
+    log(`Conectado — ${baud} baud`, 'ok');
+    readLoop();
+  } catch(e) {
+    port = null; setConnState('disconnected');
+    log('Conexão cancelada ou falhou: ' + e.message, 'error');
+  }
+}
+ 
+async function disconnect() {
+  try {
+    if (reader) { await reader.cancel(); reader = null; }
+    if (port) { await port.close(); port = null; }
+    setConnState('disconnected');
+    log('Desconectado.', 'warn');
+  } catch(e) { log('Erro ao desconectar: ' + e.message, 'error'); }
+}
+ 
+async function readLoop() {
+  const decoder = new TextDecoderStream();
+  port.readable.pipeTo(decoder.writable);
+  const inputStream = decoder.readable;
+  reader = inputStream.getReader();
+  try {
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buffer += value;
+      let lines = buffer.split('\n');
+      buffer = lines.pop();
+      for (const line of lines) parseLine(line.trim());
+    }
+  } catch(e) {
+    if (port) log('Leitura encerrada: ' + e.message, 'error');
+  }
+}
+ 
+function parseLine(line) {
+  if (!line) return;
+  log(line, 'data');
+  const tMatch = line.match(/T[:\s]*([\d.]+)/i);
+  const uMatch = line.match(/U[:\s]*([\d.]+)/i);
+  let t = tMatch ? parseFloat(tMatch[1]) : lastT;
+  let u = uMatch ? parseFloat(uMatch[1]) : lastU;
+  if (t !== null && u !== null) updateReadings(t, u);
+}
+ 
+function updateReadings(t, u) {
+  lastT = t; lastU = u;
+  document.getElementById('tempVal').textContent = t.toFixed(1);
+  document.getElementById('umidVal').textContent = Math.round(u);
+ 
+  const tPct = Math.min(100, Math.max(0, ((t - 20) / 40) * 100));
+  const uPct = Math.min(100, Math.max(0, u));
+  document.getElementById('tempBar').style.width = tPct.toFixed(1) + '%';
+  document.getElementById('umidBar').style.width = uPct.toFixed(1) + '%';
+ 
+  applyLogic(t, u);
+ 
+  const now = Date.now();
+  tempHistory.push(t); umidHistory.push(u); timeHistory.push(now);
+  if (tempHistory.length > MAX_HIST) { tempHistory.shift(); umidHistory.shift(); timeHistory.shift(); }
+  drawChart();
+}
+ 
+function applyLogic(t, u) {
+  if (t === null || u === null) return;
+  const heatOn = t < cfg.tMin || u < cfg.uMin;
+  const fanOn  = t > cfg.tMax || u > cfg.uMax;
+ 
+  const tBar = document.getElementById('tempBar');
+  const uBar = document.getElementById('umidBar');
+  const tSt  = document.getElementById('tempStatus');
+  const uSt  = document.getElementById('umidStatus');
+ 
+  if (t !== null) {
+    if (t < cfg.tMin) { tBar.style.background='#E24B4A'; tSt.textContent='⬇ Baixa'; tSt.style.background='var(--red-bg)'; tSt.style.color='var(--red-txt)'; }
+    else if (t > cfg.tMax) { tBar.style.background='#185FA5'; tSt.textContent='⬆ Alta'; tSt.style.background='var(--blue-bg)'; tSt.style.color='var(--blue-txt)'; }
+    else { tBar.style.background='#639922'; tSt.textContent='✓ Normal'; tSt.style.background='var(--green-bg)'; tSt.style.color='var(--green-txt)'; }
+  }
+  if (u !== null) {
+    if (u < cfg.uMin) { uBar.style.background='#E24B4A'; uSt.textContent='⬇ Baixa'; uSt.style.background='var(--red-bg)'; uSt.style.color='var(--red-txt)'; }
+    else if (u > cfg.uMax) { uBar.style.background='#185FA5'; uSt.textContent='⬆ Alta'; uSt.style.background='var(--blue-bg)'; uSt.style.color='var(--blue-txt)'; }
+    else { uBar.style.background='#639922'; uSt.textContent='✓ Normal'; uSt.style.background='var(--green-bg)'; uSt.style.color='var(--green-txt)'; }
+  }
+ 
+  const coils = [document.getElementById('c1'),document.getElementById('c2'),document.getElementById('c3'),document.getElementById('c4')];
+  coils.forEach(c => c.classList.toggle('glow', heatOn));
+  document.getElementById('actHeat').className = 'actuator' + (heatOn ? ' on-heat' : '');
+  document.getElementById('heatBadge').className = 'act-badge' + (heatOn ? ' on-heat' : '');
+  document.getElementById('heatBadge').textContent = heatOn ? 'LIGADA' : 'Desligada';
+ 
+  document.getElementById('actFan').className = 'actuator' + (fanOn ? ' on-fan' : '');
+  document.getElementById('fanBadge').className = 'act-badge' + (fanOn ? ' on-fan' : '');
+  document.getElementById('fanBadge').textContent = fanOn ? 'LIGADA' : 'Desligada';
+ 
+  const fanIcon = document.getElementById('fanIcon');
+  if (fanOn && !fanSpinning) {
+    fanSpinning = true;
+    let angle = 0;
+    spinInterval = setInterval(() => { angle = (angle + 30) % 360; fanIcon.style.transform = `rotate(${angle}deg)`; }, 50);
+  } else if (!fanOn && fanSpinning) {
+    fanSpinning = false; clearInterval(spinInterval);
+    fanIcon.style.transform = 'rotate(0deg)';
+  }
+}
+ 
+function drawChart() {
+  const canvas = document.getElementById('chartCanvas');
+  const dpr = window.devicePixelRatio || 1;
+  const W = canvas.offsetWidth, H = 180;
+  canvas.width = W * dpr; canvas.height = H * dpr;
+  const ctx = canvas.getContext('2d');
+  ctx.scale(dpr, dpr);
+ 
+  const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+  const gridCol = isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.07)';
+  const textCol = isDark ? '#888780' : '#888780';
+ 
+  ctx.clearRect(0, 0, W, H);
+  const pad = { top: 10, bottom: 24, left: 36, right: 12 };
+  const cW = W - pad.left - pad.right;
+  const cH = H - pad.top - pad.bottom;
+ 
+  for (let i = 0; i <= 4; i++) {
+    const y = pad.top + (cH / 4) * i;
+    ctx.strokeStyle = gridCol; ctx.lineWidth = 0.5;
+    ctx.beginPath(); ctx.moveTo(pad.left, y); ctx.lineTo(W - pad.right, y); ctx.stroke();
+    const val = Math.round(100 - (100 / 4) * i);
+    ctx.fillStyle = textCol; ctx.font = '10px -apple-system,sans-serif';
+    ctx.textAlign = 'right'; ctx.fillText(val, pad.left - 4, y + 4);
+  }
+ 
+  function plotLine(data, color, minV, maxV) {
+    if (data.length < 2) return;
+    ctx.beginPath(); ctx.strokeStyle = color; ctx.lineWidth = 1.5; ctx.lineJoin = 'round';
+    data.forEach((v, i) => {
+      const x = pad.left + (i / (MAX_HIST - 1)) * cW;
+      const y = pad.top + cH - ((v - minV) / (maxV - minV)) * cH;
+      i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+    });
+    ctx.stroke();
+  }
+ 
+  plotLine(tempHistory, '#E24B4A', 20, 60);
+  plotLine(umidHistory, '#185FA5', 0, 100);
+ 
+  ctx.fillStyle = textCol; ctx.font = '10px -apple-system,sans-serif'; ctx.textAlign = 'center';
+  ctx.fillText('← 60 leituras', pad.left + cW / 2, H - 4);
+}
+ 
+window.addEventListener('resize', drawChart);
+ 
+updateCfg();
+log('Sistema iniciado. Clique em "Conectar Arduino".', 'info');
+log('Protocolo esperado: T:37.5,U:62', 'info');
+</script>
+</body>
+</html>
